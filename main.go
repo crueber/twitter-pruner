@@ -18,7 +18,6 @@ type Pruner func(*twitter.Client, *TwitterEnv) error
 func main() {
 	cli.Run(new(TwitterEnv), func(ctx *cli.Context) error {
 		twitterEnv := ctx.Argv().(*TwitterEnv)
-
 		client := twitterEnv.GenerateTwitterClient()
 
 		fns := []interface{}{Verify, PruneTimeline, PruneLikes, PruneArchive}
@@ -37,16 +36,6 @@ func main() {
 
 		return nil
 	})
-
-	// Home Timeline
-	// tweets, _, err := client.Timelines.HomeTimeline(&twitter.HomeTimelineParams{
-	// 	Count: 20,
-	// })
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// fmt.Println(prettyPrint(tweets))
 }
 
 func prettyPrint(i interface{}) string {

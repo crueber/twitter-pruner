@@ -10,6 +10,15 @@ const (
 
 // PruneTimeline does exactly what it says it does
 func PruneTimeline(te *twitter.Client, env *TwitterEnv) error {
+
+	// Home Timeline
+	// tweets, _, err := client.Timelines.HomeTimeline(&twitter.HomeTimelineParams{
+	// 	Count: 20,
+	// })
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
 	return nil
 }
 
