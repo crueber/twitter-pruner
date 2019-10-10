@@ -1,6 +1,8 @@
 ## Twitter Pruner
 
-This tool is used to prune tweets on twitter. It was heavily inspired by MikeMcQuaid's project (Twitter Delete)[https://github.com/MikeMcQuaid/TwitterDelete]. None of his code was re-used, as this is written in Golang. Ruby is a good programming language, but if one wants to distribute binaries, it isn't ideal. Releases will be maintained for all major operating systems, so that people don't have to be familiar with a programming language to perform the task.
+#### Still Under Construction
+
+This tool is used to prune tweets on twitter. It was heavily inspired by MikeMcQuaid's project [Twitter Delete](https://github.com/MikeMcQuaid/TwitterDelete). None of his code was re-used, as this is written in Golang. Ruby is a good programming language, but if one wants to distribute binaries, it isn't ideal. Releases will be maintained for all major operating systems, so that people don't have to be familiar with a programming language to perform the task.
 
 The features will eventually have (at least) parity with TwitterDelete.
 * Delete old tweets and retweets with adjustable age preference.
