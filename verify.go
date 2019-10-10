@@ -7,13 +7,14 @@ import (
 )
 
 // Verify gets User baseline data.
-func Verify(twit *twitter.Client, te *TwitterEnv) error {
+func Verify(twit *twitter.Client, te *TwitterEnv) (*twitter.User, error) {
 	verifyParams := &twitter.AccountVerifyParams{SkipStatus: twitter.Bool(true), IncludeEmail: twitter.Bool(true)}
 	user, _, err := twit.Accounts.VerifyCredentials(verifyParams)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Printf("Verified :: %v :: %v :: %v\n", user.ScreenName, user.Name, user.Description)
-	return nil
+	fmt.Printf("Total number of statuses: %v\n", user.StatusesCount)
+	return user, nil
 }

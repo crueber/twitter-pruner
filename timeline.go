@@ -1,6 +1,10 @@
 package main
 
-import "github.com/dghubble/go-twitter/twitter"
+import (
+	"fmt"
+
+	"github.com/dghubble/go-twitter/twitter"
+)
 
 const (
 	maxAPITweets        = 3200
@@ -8,8 +12,17 @@ const (
 	maxTweetsPerRequest = 100
 )
 
+func getTweetsToDelete(te *twitter.Client, env *TwitterEnv) ([]twitter.Tweet, error) {
+	tweetsToDelete := []twitter.Tweet{}
+
+	return tweetsToDelete, nil
+}
+
 // PruneTimeline does exactly what it says it does
-func PruneTimeline(te *twitter.Client, env *TwitterEnv) error {
+func PruneTimeline(te *twitter.Client, user *twitter.User, env *TwitterEnv) error {
+	totalCount := 0
+
+	// &twitter.UserTimelineParams{page: 1, count: 20}
 
 	// Home Timeline
 	// tweets, _, err := client.Timelines.HomeTimeline(&twitter.HomeTimelineParams{
@@ -18,6 +31,8 @@ func PruneTimeline(te *twitter.Client, env *TwitterEnv) error {
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
+
+	fmt.Printf("Total Count: %v\n", totalCount)
 
 	return nil
 }

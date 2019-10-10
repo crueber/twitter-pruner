@@ -3,7 +3,7 @@ package main
 import "github.com/dghubble/go-twitter/twitter"
 
 // PruneArchive prunes the twitter archive
-func PruneArchive(te *twitter.Client, env *TwitterEnv) error {
+func PruneArchive(te *twitter.Client, user *twitter.User, env *TwitterEnv) error {
 	return nil
 }
 
