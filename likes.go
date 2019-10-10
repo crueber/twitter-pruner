@@ -7,7 +7,7 @@ const (
 )
 
 // PruneLikes does exactly what it says it does
-func PruneLikes(te *twitter.Client, user *twitter.User, env *TwitterEnv) error {
+func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 	return nil
 }
 

@@ -2,24 +2,25 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/dghubble/go-twitter/twitter"
 )
 
-const (
-	maxAPITweets        = 3200
-	maxTweetsPerPage    = 200
-	maxTweetsPerRequest = 100
-)
+func isTooNew(t *twitter.Tweet, env *PrunerEnv) bool {
+	time, _ := t.CreatedAtTime()
 
-func getTweetsToDelete(te *twitter.Client, env *TwitterEnv) ([]twitter.Tweet, error) {
+	return time.Before(env.MaxAge)
+}
+
+func getTweetsToDelete(te *twitter.Client, env *PrunerEnv) ([]twitter.Tweet, error) {
 	tweetsToDelete := []twitter.Tweet{}
 
 	return tweetsToDelete, nil
 }
 
 // PruneTimeline does exactly what it says it does
-func PruneTimeline(te *twitter.Client, user *twitter.User, env *TwitterEnv) error {
+func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 	totalCount := 0
 
 	// &twitter.UserTimelineParams{page: 1, count: 20}
@@ -32,7 +33,7 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *TwitterEnv) erro
 	// 	fmt.Println(err)
 	// }
 
-	fmt.Printf("Total Count: %v\n", totalCount)
+	fmt.Printf("Total Count: %v; Max Age: %v\n", totalCount, env.MaxAge.Format(time.RFC3339))
 
 	return nil
 }
@@ -63,13 +64,6 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *TwitterEnv) erro
 //   rescue Twitter::Error::NotFound
 //     nil
 //   end
-// end
-
-// @oldest_tweet_time_to_keep = Time.now - @options[:days] * 24 * 60 * 60
-// @newest_tweet_time_to_keep = Time.now - @options[:olds] * 24 * 60 * 60
-
-// def too_new?(tweet)
-//   tweet.created_at > @oldest_tweet_time_to_keep || tweet.created_at < @newest_tweet_time_to_keep
 // end
 
 // def too_new_or_popular?(tweet)

@@ -13,16 +13,20 @@ import (
 )
 
 // Pruner is for each of the pruning functions
-type Pruner func(*twitter.Client, *twitter.User, *TwitterEnv) error
+type Pruner func(*twitter.Client, *twitter.User, *PrunerEnv) error
 
 func main() {
-	cli.Run(new(TwitterEnv), func(ctx *cli.Context) error {
-		twitterEnv := ctx.Argv().(*TwitterEnv)
-		client := twitterEnv.GenerateTwitterClient()
+	cli.Run(new(PrunerEnv), func(ctx *cli.Context) error {
+		twitterEnv := ctx.Argv().(*PrunerEnv)
+		client, err := twitterEnv.GenerateTwitterClient()
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
 
 		user, err := Verify(client, twitterEnv)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Printf("%+v\n", err)
 			os.Exit(1)
 		}
 
@@ -31,10 +35,10 @@ func main() {
 		for _, fn := range fns {
 			fmt.Printf("Started %v\n", strings.Replace(runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), "main.", "", 1))
 
-			f := fn.(func(*twitter.Client, *twitter.User, *TwitterEnv) error)
+			f := fn.(func(*twitter.Client, *twitter.User, *PrunerEnv) error)
 			err := Pruner(f)(client, user, twitterEnv)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Printf("%+v\n", err)
 				os.Exit(1)
 			}
 		}
