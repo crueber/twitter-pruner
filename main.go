@@ -30,7 +30,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fns := []interface{}{PruneTimeline, PruneLikes, PruneArchive}
+		fns := []interface{}{PruneTimeline, PruneLikes}
 
 		for _, fn := range fns {
 			fmt.Printf("Started %v\n", strings.Replace(runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), "main.", "", 1))

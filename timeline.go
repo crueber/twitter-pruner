@@ -91,24 +91,3 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 
 	return nil
 }
-
-// The Ruby Code
-
-// def too_new_or_popular?(tweet)
-//   return true if too_new? tweet
-
-//   return false if tweet.retweeted?
-//   return false if tweet.text.start_with? "RT @"
-
-//   if tweet.retweet_count >= @options[:rts]
-//     puts "Ignoring tweet: too RTd: #{tweet.text}"
-//     return true
-//   end
-
-//   if tweet.favorite_count >= @options[:favs]
-//     puts "Ignoring tweet: too liked: #{tweet.text}"
-//     return true
-//   end
-
-//   false
-// end
