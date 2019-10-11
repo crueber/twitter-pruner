@@ -17,10 +17,12 @@ Uncertain on this one
 
 You will need to get an app set up on Twitter in order to use this. Visit https://apps.twitter.com and take note of the following items, as you'll need them to run the pruner:
 
+```
 twitter_consumer_key
 twitter_consumer_secret
 twitter_access_token
 twitter_access_token_secret
+```
 
 ### Usage
 

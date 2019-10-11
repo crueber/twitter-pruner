@@ -2,69 +2,97 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/dghubble/go-twitter/twitter"
 )
 
-func isTooNew(t *twitter.Tweet, env *PrunerEnv) bool {
-	time, _ := t.CreatedAtTime()
+func isAgedOut(t *twitter.Tweet, env *PrunerEnv) bool {
+	createdTime, _ := t.CreatedAtTime()
 
-	return time.Before(env.MaxAge)
+	return env.MaxAge.After(createdTime)
 }
 
-func getTweetsToDelete(te *twitter.Client, env *PrunerEnv) ([]twitter.Tweet, error) {
-	tweetsToDelete := []twitter.Tweet{}
+func isBoring(t *twitter.Tweet, env *PrunerEnv) bool {
+	if env.AllRts && t.Retweeted {
+		return true
+	}
+	if t.FavoriteCount >= env.Favs || t.RetweetCount >= env.Rts {
+		fmt.Printf("Ignoring tweet (%v fav/%v rt): %v\n", t.FavoriteCount, t.RetweetCount, t.Text)
+		return false
+	}
+	return true
+}
 
-	return tweetsToDelete, nil
+func getTweetsToDelete(tweets []twitter.Tweet, env *PrunerEnv) []twitter.Tweet {
+	var tweetsToDelete []twitter.Tweet
+	for _, tweet := range tweets {
+		if isAgedOut(&tweet, env) && isBoring(&tweet, env) {
+			tweetsToDelete = append(tweetsToDelete, tweet)
+		}
+	}
+	return tweetsToDelete
+}
+
+func deleteTweets(te *twitter.Client, tweets []twitter.Tweet, env *PrunerEnv) (int, int) {
+	count := 0
+	errorCount := 0
+	if env.Commit {
+		for _, tweet := range tweets {
+			_, _, err := te.Statuses.Destroy(tweet.ID, &twitter.StatusDestroyParams{ID: tweet.ID})
+			if err != nil {
+				fmt.Printf("Error removing status: %v", err)
+				errorCount++
+			}
+			count++
+		}
+	}
+	return count, errorCount
 }
 
 // PruneTimeline does exactly what it says it does
 func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 	totalCount := 0
+	totalMarkedForRemoval := 0
+	totalRemoved := 0
+	errorCount := 0
+	inclRTs := true
+	opts := &twitter.UserTimelineParams{Count: env.MaxTweetsPerRequest, IncludeRetweets: &inclRTs}
+	shouldContinue := true
+	if env.Commit {
+		os.Exit(1)
+	}
 
-	// &twitter.UserTimelineParams{page: 1, count: 20}
+	for shouldContinue {
+		tweets, _, err := te.Timelines.UserTimeline(opts)
+		if err != nil {
+			fmt.Printf("Error in timeline retrieval: %+v", err)
+			errorCount++
+		}
 
-	// Home Timeline
-	// tweets, _, err := client.Timelines.HomeTimeline(&twitter.HomeTimelineParams{
-	// 	Count: 20,
-	// })
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+		tweetsToDelete := getTweetsToDelete(tweets, env)
+		removed, errs := deleteTweets(te, tweetsToDelete, env)
 
-	fmt.Printf("Total Count: %v; Max Age: %v\n", totalCount, env.MaxAge.Format(time.RFC3339))
+		totalCount += len(tweets)
+		totalMarkedForRemoval += len(tweetsToDelete)
+		totalRemoved += removed
+		errorCount += errs
+
+		if errorCount < 20 && len(tweets) == env.MaxTweetsPerRequest && totalCount < env.MaxAPITweets {
+			opts.MaxID = tweets[19].ID
+			// fmt.Printf(".")
+		} else {
+			shouldContinue = false
+		}
+	}
+
+	fmt.Printf("\nTotal Count: %v; Removed: %v of %v; Max Age: %v\n", totalCount, totalRemoved, totalMarkedForRemoval, env.MaxAge.Format(time.RFC3339))
 
 	return nil
 }
 
 // The Ruby Code
-
-// puts "==> Checking timeline..."
-// total_tweets = [user.statuses_count, MAX_API_TWEETS].min
-// oldest_tweets_page = (total_tweets / MAX_TWEETS_PER_PAGE).ceil
-
-// oldest_tweets_page.downto(1) do |page|
-//   tweets = api_call :user_timeline, count: MAX_TWEETS_PER_PAGE, page: page
-//   tweets_to_delete += tweets.reject(&method(:too_new_or_popular?))
-// end
-
-// puts "==> Deleting #{tweets_to_delete.size} tweets"
-// tweets_to_delete.each_slice(MAX_TWEETS_PER_REQUEST) do |tweets|
-//   begin
-//     # api_call :destroy_status, tweets
-//   rescue Twitter::Error::NotFound
-//     tweets_not_found += tweets
-//   end
-// end
-
-// tweets_not_found.each do |tweet|
-//   begin
-//     # api_call :destroy_status, tweet
-//   rescue Twitter::Error::NotFound
-//     nil
-//   end
-// end
 
 // def too_new_or_popular?(tweet)
 //   return true if too_new? tweet
