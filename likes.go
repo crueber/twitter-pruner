@@ -59,7 +59,7 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 		removed += unfaved
 		errorCount += errs
 
-		if errorCount < 20 && len(favs) != 0 && env.MaxAPITweets > 0 {
+		if errorCount < 20 && len(favs) > 1 && env.MaxAPITweets > 0 {
 			opts.MaxID = favs[len(favs)-1].ID
 		} else {
 			shouldContinue = false

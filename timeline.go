@@ -60,8 +60,8 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 	markedForRemoval := 0
 	removed := 0
 	errorCount := 0
-	inclRTs := true
-	opts := &twitter.UserTimelineParams{Count: env.MaxTweetsPerRequest, IncludeRetweets: &inclRTs}
+	boolTrue := true
+	opts := &twitter.UserTimelineParams{Count: env.MaxTweetsPerRequest, TrimUser: &boolTrue, IncludeRetweets: &boolTrue}
 	shouldContinue := true
 
 	for shouldContinue {
@@ -80,9 +80,9 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 		removed += removed
 		errorCount += errs
 
-		if errorCount < 20 && len(tweets) != 0 && env.MaxAPITweets > 0 {
+		if errorCount < 20 && len(tweets) > 1 && env.MaxAPITweets > 0 {
 			opts.MaxID = tweets[len(tweets)-1].ID
-			// fmt.Printf(".")
+			fmt.Printf("%v -- %v -- %v -- %v", errorCount, len(tweets), env.MaxAPITweets, opts.MaxID)
 		} else {
 			shouldContinue = false
 		}
