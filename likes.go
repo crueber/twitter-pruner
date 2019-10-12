@@ -19,12 +19,26 @@ func whichTweetsToUnfavorite(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
 	return unfav
 }
 
+func unfavorite(te *twitter.Client, id int64) error {
+	_, resp, err := te.Favorites.Destroy(&twitter.FavoriteDestroyParams{ID: id})
+	if resp.StatusCode == 429 {
+		wait, _ := time.ParseDuration(resp.Header.Get("x-rate-limit-reset") + "s")
+		fmt.Printf("Rate limit exceeded, waiting %v before trying again.", wait.String())
+		<-time.After(wait)
+		return unfavorite(te, id)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func processUnfavorite(te *twitter.Client, env *PrunerEnv, tweetIds []int64) (int, int) {
 	count := 0
 	errCount := 0
 	if env.Commit {
 		for _, id := range tweetIds {
-			_, _, err := te.Favorites.Destroy(&twitter.FavoriteDestroyParams{ID: id})
+			err := unfavorite(te, id)
 			if err != nil {
 				fmt.Printf("Error removing favorite: %v", err)
 				errCount++
@@ -61,7 +75,9 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 
 		if errorCount < 20 && len(favs) > 1 && env.MaxAPITweets > 0 {
 			opts.MaxID = favs[len(favs)-1].ID
+			fmt.Printf(".")
 		} else {
+			fmt.Printf("\n")
 			shouldContinue = false
 		}
 	}

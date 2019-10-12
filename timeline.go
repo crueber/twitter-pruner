@@ -38,12 +38,26 @@ func getTweetsToDelete(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
 	return tweetsToDelete
 }
 
+func deleteTweet(te *twitter.Client, id int64) error {
+	_, resp, err := te.Statuses.Destroy(id, &twitter.StatusDestroyParams{ID: id})
+	if resp.StatusCode == 429 {
+		wait, _ := time.ParseDuration(resp.Header.Get("x-rate-limit-reset") + "s")
+		fmt.Printf("Rate limit exceeded, waiting %v before trying again.", wait.String())
+		<-time.After(wait)
+		return deleteTweet(te, id)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func deleteTweets(te *twitter.Client, tweetIds []int64, env *PrunerEnv) (int, int) {
 	count := 0
 	errorCount := 0
 	if env.Commit {
 		for _, id := range tweetIds {
-			_, _, err := te.Statuses.Destroy(id, &twitter.StatusDestroyParams{ID: id})
+			err := deleteTweet(te, id)
 			if err != nil {
 				fmt.Printf("Error removing status: %v", err)
 				errorCount++
