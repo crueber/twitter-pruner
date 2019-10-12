@@ -16,16 +16,17 @@ type PrunerEnv struct {
 	ConsumerSecret      string    `cli:"*secret" usage:"consumer secret" prompt:"Consumer Secret"`
 	AccessToken         string    `cli:"*token" usage:"access token" prompt:"Access Token"`
 	AccessTokenSecret   string    `cli:"*tsecret" usage:"access token secret" prompt:"Access Token Secret"`
+	InclTweets          bool      `cli:"*t" usage:"should prune tweets" dft:"false"`
+	InclLikes           bool      `cli:"*l" usage:"should prune likes" dft:"false"`
 	Days                int       `cli:"d,days" usage:"number of days to keep" dft:"28"`
 	Rts                 int       `cli:"rt" usage:"keep tweets with this many retweets" dft:"3"`
 	Favs                int       `cli:"fav" usage:"keep tweets with this many favorites" dft:"3"`
 	AllRts              bool      `cli:"r,allrts" usage:"remove all retweets" dft:"false"`
 	Commit              bool      `cli:"c" usage:"commit changes" dft:"false"`
-	MaxAPITweets        int       `cli:"max" usage:"max api tweets" dft:"3200"`
+	MaxAPICalls         int       `cli:"max" usage:"max api calls" dft:"3200"`
 	MaxTweetsPerRequest int       `cli:"request" usage:"number of tweets per request" dft:"100"`
 	MaxAge              time.Time `cli:"age" usage:"specific date that overrides days duration"`
-	InclTweets          bool      `cli:"*t" usage:"should prune tweets" dft:"false"`
-	InclLikes           bool      `cli:"*l" usage:"should prune likes" dft:"false"`
+	Verbose             bool      `cli:"v,verbose" usage:"increased verbosity" dft:"false"`
 }
 
 // GenerateTwitterClient builds a twitter client that can be used to make calls

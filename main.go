@@ -39,7 +39,7 @@ func main() {
 		}
 
 		for _, fn := range fns {
-			if twitterEnv.MaxAPITweets <= 0 {
+			if twitterEnv.MaxAPICalls <= 0 {
 				fmt.Println("Max number of twitter interactions reached for this run.")
 				break
 			}

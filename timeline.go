@@ -32,6 +32,9 @@ func getTweetsToDelete(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
 	var tweetsToDelete []int64
 	for _, tweet := range tweets {
 		if isAgedOut(&tweet, env) && isBoring(&tweet, env) {
+			if env.Verbose {
+				fmt.Printf("%v --- %v %v --- %v\n", tweet.CreatedAt, tweet.FavoriteCount, tweet.RetweetCount, tweet.Text)
+			}
 			tweetsToDelete = append(tweetsToDelete, tweet.ID)
 		}
 	}
@@ -42,7 +45,7 @@ func deleteTweet(te *twitter.Client, id int64) error {
 	_, resp, err := te.Statuses.Destroy(id, &twitter.StatusDestroyParams{ID: id})
 	if resp.StatusCode == 429 {
 		wait, _ := time.ParseDuration(resp.Header.Get("x-rate-limit-reset") + "s")
-		fmt.Printf("Rate limit exceeded, waiting %v before trying again.", wait.String())
+		fmt.Printf("Rate limit exceeded, waiting %v before trying again.\n", wait.String())
 		<-time.After(wait)
 		return deleteTweet(te, id)
 	}
@@ -59,8 +62,11 @@ func deleteTweets(te *twitter.Client, tweetIds []int64, env *PrunerEnv) (int, in
 		for _, id := range tweetIds {
 			err := deleteTweet(te, id)
 			if err != nil {
-				fmt.Printf("Error removing status: %v", err)
+				fmt.Printf("Error removing status: %v\n", err)
 				errorCount++
+			}
+			if env.Verbose {
+				fmt.Printf(".")
 			}
 			count++
 		}
@@ -79,6 +85,7 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 	shouldContinue := true
 
 	for shouldContinue {
+		env.MaxAPICalls--
 		tweets, _, err := te.Timelines.UserTimeline(opts)
 		if err != nil {
 			fmt.Printf("Error in timeline retrieval: %+v", err)
@@ -87,16 +94,21 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 
 		tweetsToDelete := getTweetsToDelete(tweets, env)
 		removed, errs := deleteTweets(te, tweetsToDelete, env)
+		if env.Commit && env.Verbose {
+			fmt.Printf("\n")
+		}
 
-		env.MaxAPITweets -= len(tweets)
+		env.MaxAPICalls -= removed
 		count += len(tweets)
 		markedForRemoval += len(tweetsToDelete)
 		removed += removed
 		errorCount += errs
 
-		if errorCount < 20 && len(tweets) > 1 && env.MaxAPITweets > 0 {
+		if errorCount < 20 && len(tweets) > 1 && env.MaxAPICalls > 0 {
 			opts.MaxID = tweets[len(tweets)-1].ID
-			fmt.Printf("%v -- %v -- %v -- %v\n", errorCount, len(tweets), env.MaxAPITweets, opts.MaxID)
+			if env.Verbose {
+				fmt.Printf("%v errs -- %v tweets -- %v calls left -- %v current id\n", errorCount, len(tweets), env.MaxAPICalls, opts.MaxID)
+			}
 		} else {
 			shouldContinue = false
 		}
