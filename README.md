@@ -1,7 +1,5 @@
 ## Twitter Pruner
 
-#### Still Under Construction
-
 This tool is used to prune tweets on twitter. It was heavily inspired by MikeMcQuaid's project [Twitter Delete](https://github.com/MikeMcQuaid/TwitterDelete). None of his code was re-used, as this is written in Golang. Ruby is a good programming language, but if one wants to distribute binaries, it isn't ideal. Releases will be maintained for all major operating systems, so that people don't have to be familiar with a programming language to perform the task.
 
 The features will eventually have (at least) parity with TwitterDelete.
@@ -11,6 +9,10 @@ The features will eventually have (at least) parity with TwitterDelete.
 
 Uncertain on this one
 * Delete tweets no longer exposed by Twitter API from a downloaded Twitter archive file
+
+#### Construction Notes
+
+I just finished this and used it on my own profile. It may be ready for building and passing along, but I will be messing around with it for a few more days. You may actually find it useful as is, at this point.
 
 
 ### Pre-reqs
