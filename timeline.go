@@ -82,7 +82,7 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 
 		if errorCount < 20 && len(tweets) > 1 && env.MaxAPITweets > 0 {
 			opts.MaxID = tweets[len(tweets)-1].ID
-			fmt.Printf("%v -- %v -- %v -- %v", errorCount, len(tweets), env.MaxAPITweets, opts.MaxID)
+			fmt.Printf("%v -- %v -- %v -- %v\n", errorCount, len(tweets), env.MaxAPITweets, opts.MaxID)
 		} else {
 			shouldContinue = false
 		}

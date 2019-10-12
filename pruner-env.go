@@ -24,6 +24,8 @@ type PrunerEnv struct {
 	MaxAPITweets        int       `cli:"max" usage:"max api tweets" dft:"3200"`
 	MaxTweetsPerRequest int       `cli:"request" usage:"number of tweets per request" dft:"100"`
 	MaxAge              time.Time `cli:"age" usage:"specific date that overrides days duration"`
+	InclTweets          bool      `cli:"*t" usage:"should prune tweets" dft:"false"`
+	InclLikes           bool      `cli:"*l" usage:"should prune likes" dft:"false"`
 }
 
 // GenerateTwitterClient builds a twitter client that can be used to make calls

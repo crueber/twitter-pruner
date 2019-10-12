@@ -30,7 +30,13 @@ func main() {
 			os.Exit(1)
 		}
 
-		fns := []interface{}{PruneTimeline, PruneLikes}
+		var fns []interface{}
+		if twitterEnv.InclTweets {
+			fns = append(fns, PruneTimeline)
+		}
+		if twitterEnv.InclLikes {
+			fns = append(fns, PruneLikes)
+		}
 
 		for _, fn := range fns {
 			if twitterEnv.MaxAPITweets <= 0 {
