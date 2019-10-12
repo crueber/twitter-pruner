@@ -43,14 +43,14 @@ func processUnfavorite(te *twitter.Client, env *PrunerEnv, tweetIds []int64) (in
 		for _, id := range tweetIds {
 			err := unfavorite(te, id)
 			if err != nil {
-				if !env.Verbose {
+				if env.Verbose {
 					fmt.Printf("\n")
 				}
 				fmt.Printf("%v\n", err)
 				errCount++
 				continue
 			}
-			if !env.Verbose {
+			if env.Verbose {
 				fmt.Printf(".")
 			}
 			count++
@@ -65,7 +65,8 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 	markedForRemoval := 0
 	removed := 0
 	errorCount := 0
-	opts := &twitter.FavoriteListParams{Count: env.MaxTweetsPerRequest}
+	isFalse := false
+	opts := &twitter.FavoriteListParams{Count: env.MaxTweetsPerRequest, UserID: user.ID, IncludeEntities: &isFalse}
 	shouldContinue := true
 
 	for shouldContinue {
@@ -78,7 +79,7 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 
 		unfav := whichTweetsToUnfavorite(favs, env)
 		unfaved, errs := processUnfavorite(te, env, unfav)
-		if env.Commit && !env.Verbose {
+		if env.Commit && env.Verbose && unfaved > 0 {
 			fmt.Printf("\n")
 		}
 
@@ -88,10 +89,10 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 		removed += unfaved
 		errorCount += errs
 
-		if errorCount < 20 && len(favs) > 1 && env.MaxAPICalls > 0 {
-			opts.MaxID = favs[len(favs)-1].ID
+		if errorCount < 20 && len(favs) > 0 && env.MaxAPICalls > 0 {
+			opts.MaxID = favs[len(favs)-1].ID - 1
 			if env.Verbose {
-				fmt.Printf("%v errs -- %v likes -- %v calls left -- %v oldest\n", errorCount, len(favs), env.MaxAPICalls, favs[len(favs)-1].CreatedAt)
+				fmt.Printf("%v errs -- %v likes -- %v calls left -- oldest in batch: %v\n", errorCount, len(favs), env.MaxAPICalls, favs[len(favs)-1].CreatedAt)
 			} else {
 				fmt.Printf(".")
 			}
@@ -103,7 +104,7 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 		}
 	}
 
-	fmt.Printf("\nTotal Count: %v; Removed: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
+	fmt.Printf("\nTotal Scanned Tweets: %v; Unliked: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
 
 	return nil
 }

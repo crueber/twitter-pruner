@@ -64,11 +64,16 @@ func deleteTweets(te *twitter.Client, tweetIds []int64, env *PrunerEnv) (int, in
 		for _, id := range tweetIds {
 			err := deleteTweet(te, id)
 			if err != nil {
-				fmt.Printf("\nError removing status: %v\n", err)
+				if env.Verbose {
+					fmt.Printf("\n")
+				}
+				fmt.Printf("Error removing status: %v\n", err)
 				errorCount++
 				continue
 			}
-			fmt.Printf(".")
+			if env.Verbose {
+				fmt.Printf(".")
+			}
 			count++
 		}
 	}
@@ -92,21 +97,21 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 			fmt.Printf("Error in timeline retrieval: %+v", err)
 			errorCount++
 		}
+		count += len(tweets)
 
 		tweetsToDelete := getTweetsToDelete(tweets, env)
-		removed, errs := deleteTweets(te, tweetsToDelete, env)
-		if env.Commit && !env.Verbose {
+		markedForRemoval += len(tweetsToDelete)
+
+		numberRemoved, errs := deleteTweets(te, tweetsToDelete, env)
+		if env.Commit && env.Verbose {
 			fmt.Printf("\n")
 		}
-
-		env.MaxAPICalls -= removed
-		count += len(tweets)
-		markedForRemoval += len(tweetsToDelete)
-		removed += removed
+		env.MaxAPICalls -= numberRemoved
+		removed += numberRemoved
 		errorCount += errs
 
-		if errorCount < 20 && len(tweets) > 1 && env.MaxAPICalls > 0 {
-			opts.MaxID = tweets[len(tweets)-1].ID
+		if errorCount < 20 && len(tweets) > 0 && env.MaxAPICalls > 0 {
+			opts.MaxID = tweets[len(tweets)-1].ID - 1
 			if env.Verbose {
 				fmt.Printf("%v errs -- %v tweets -- %v calls left -- %v current id\n", errorCount, len(tweets), env.MaxAPICalls, opts.MaxID)
 			}
@@ -115,7 +120,7 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 		}
 	}
 
-	fmt.Printf("\nTotal Count: %v; Removed: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
+	fmt.Printf("\nTotal Scanned Tweets: %v; Removed: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
 
 	return nil
 }
