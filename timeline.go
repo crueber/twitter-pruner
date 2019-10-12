@@ -22,7 +22,9 @@ func isBoring(t *twitter.Tweet, env *PrunerEnv) bool {
 		if t.Retweeted {
 			rt += "re"
 		}
-		fmt.Printf("Ignoring %vtweet (%v fav/%v rt): %v\n", rt, t.FavoriteCount, t.RetweetCount, t.Text)
+		if env.Verbose {
+			fmt.Printf("Ignoring %vtweet (%v fav/%v rt): %v\n", rt, t.FavoriteCount, t.RetweetCount, t.Text)
+		}
 		return false
 	}
 	return true
@@ -45,7 +47,7 @@ func deleteTweet(te *twitter.Client, id int64) error {
 	_, resp, err := te.Statuses.Destroy(id, &twitter.StatusDestroyParams{ID: id})
 	if resp.StatusCode == 429 {
 		wait, _ := time.ParseDuration(resp.Header.Get("x-rate-limit-reset") + "s")
-		fmt.Printf("Rate limit exceeded, waiting %v before trying again.\n", wait.String())
+		fmt.Printf("\nRate limit exceeded, waiting %v before trying again.\n", wait.String())
 		<-time.After(wait)
 		return deleteTweet(te, id)
 	}
@@ -62,12 +64,11 @@ func deleteTweets(te *twitter.Client, tweetIds []int64, env *PrunerEnv) (int, in
 		for _, id := range tweetIds {
 			err := deleteTweet(te, id)
 			if err != nil {
-				fmt.Printf("Error removing status: %v\n", err)
+				fmt.Printf("\nError removing status: %v\n", err)
 				errorCount++
+				continue
 			}
-			if env.Verbose {
-				fmt.Printf(".")
-			}
+			fmt.Printf(".")
 			count++
 		}
 	}
@@ -94,7 +95,7 @@ func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error
 
 		tweetsToDelete := getTweetsToDelete(tweets, env)
 		removed, errs := deleteTweets(te, tweetsToDelete, env)
-		if env.Commit && env.Verbose {
+		if env.Commit && !env.Verbose {
 			fmt.Printf("\n")
 		}
 

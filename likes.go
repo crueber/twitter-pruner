@@ -13,8 +13,8 @@ func whichTweetsToUnfavorite(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
 	for _, tweet := range tweets {
 		if isAgedOut(&tweet, env) {
 			unfav = append(unfav, tweet.ID)
-			if !env.Verbose {
-				fmt.Printf("%v --- %v %v --- %v\n", tweet.CreatedAt, tweet.FavoriteCount, tweet.RetweetCount, tweet.Text)
+			if env.Verbose {
+				fmt.Printf("Unliking: %v --- %v\n", tweet.CreatedAt, tweet.Text)
 			}
 		}
 	}
@@ -43,12 +43,17 @@ func processUnfavorite(te *twitter.Client, env *PrunerEnv, tweetIds []int64) (in
 		for _, id := range tweetIds {
 			err := unfavorite(te, id)
 			if err != nil {
-				fmt.Printf("X\n%v\n", err)
+				if !env.Verbose {
+					fmt.Printf("\n")
+				}
+				fmt.Printf("%v\n", err)
 				errCount++
+				continue
 			}
-			if env.Verbose {
+			if !env.Verbose {
 				fmt.Printf(".")
 			}
+			count++
 		}
 	}
 	return count, errCount
@@ -73,7 +78,7 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 
 		unfav := whichTweetsToUnfavorite(favs, env)
 		unfaved, errs := processUnfavorite(te, env, unfav)
-		if env.Commit && env.Verbose {
+		if env.Commit && !env.Verbose {
 			fmt.Printf("\n")
 		}
 
@@ -86,7 +91,7 @@ func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
 		if errorCount < 20 && len(favs) > 1 && env.MaxAPICalls > 0 {
 			opts.MaxID = favs[len(favs)-1].ID
 			if env.Verbose {
-				fmt.Printf("%v errs -- %v likes -- %v calls left -- %v current id\n", errorCount, len(favs), env.MaxAPICalls, opts.MaxID)
+				fmt.Printf("%v errs -- %v likes -- %v calls left -- %v oldest\n", errorCount, len(favs), env.MaxAPICalls, favs[len(favs)-1].CreatedAt)
 			} else {
 				fmt.Printf(".")
 			}
