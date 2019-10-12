@@ -33,6 +33,10 @@ func main() {
 		fns := []interface{}{PruneTimeline, PruneLikes}
 
 		for _, fn := range fns {
+			if twitterEnv.MaxAPITweets <= 0 {
+				fmt.Println("Max number of twitter interactions reached for this run.")
+				break
+			}
 			fmt.Printf("Started %v\n", strings.Replace(runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), "main.", "", 1))
 
 			f := fn.(func(*twitter.Client, *twitter.User, *PrunerEnv) error)

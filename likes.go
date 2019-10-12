@@ -1,63 +1,72 @@
 package main
 
-import "github.com/dghubble/go-twitter/twitter"
+import (
+	"fmt"
+	"time"
 
-const (
-	maxLikesPerPage = 100
+	"github.com/dghubble/go-twitter/twitter"
 )
+
+func whichTweetsToUnfavorite(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
+	var unfav []int64
+
+	for _, tweet := range tweets {
+		if isAgedOut(&tweet, env) {
+			unfav = append(unfav, tweet.ID)
+		}
+	}
+
+	return unfav
+}
+
+func processUnfavorite(te *twitter.Client, env *PrunerEnv, tweetIds []int64) (int, int) {
+	count := 0
+	errCount := 0
+	if env.Commit {
+		for _, id := range tweetIds {
+			_, _, err := te.Favorites.Destroy(&twitter.FavoriteDestroyParams{ID: id})
+			if err != nil {
+				fmt.Printf("Error removing favorite: %v", err)
+				errCount++
+			}
+		}
+	}
+	return count, errCount
+}
 
 // PruneLikes does exactly what it says it does
 func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
+	count := 0
+	markedForRemoval := 0
+	removed := 0
+	errorCount := 0
+	opts := &twitter.FavoriteListParams{Count: env.MaxTweetsPerRequest}
+	shouldContinue := true
+
+	for shouldContinue {
+		favs, _, err := te.Favorites.List(opts)
+		if err != nil {
+			fmt.Printf("Error retrieving favorites: %+v", err)
+			errorCount++
+		}
+
+		unfav := whichTweetsToUnfavorite(favs, env)
+		unfaved, errs := processUnfavorite(te, env, unfav)
+
+		env.MaxAPITweets -= len(favs)
+		count += len(favs)
+		markedForRemoval += len(unfav)
+		removed += unfaved
+		errorCount += errs
+
+		if errorCount < 20 && len(favs) != 0 && env.MaxAPITweets > 0 {
+			opts.MaxID = favs[len(favs)-1].ID
+		} else {
+			shouldContinue = false
+		}
+	}
+
+	fmt.Printf("\nTotal Count: %v; Removed: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
+
 	return nil
 }
-
-// The Ruby Code
-
-// user = api_call :user, @options[:username]
-// tweets_to_unlike = []
-// tweets_to_delete = []
-
-// puts "==> Checking likes..."
-// total_likes = [user.favorites_count, MAX_API_TWEETS].min
-// oldest_likes_page = (total_likes / MAX_LIKES_PER_PAGE).ceil
-
-// oldest_likes_page.downto(1) do |page|
-//   tweets = api_call :favorites, count: MAX_LIKES_PER_PAGE, page: page
-//   tweets_to_unlike += tweets.reject(&method(:too_new?))
-// end
-
-// puts "==> Unliking #{tweets_to_unlike.size} tweets"
-// tweets_not_found = []
-// tweets_to_unlike.each_slice(MAX_TWEETS_PER_REQUEST) do |tweets|
-//   begin
-//     # api_call :unfavorite, tweets
-//   rescue Twitter::Error::NotFound
-//     tweets_not_found += tweets
-//   end
-// end
-
-// @oldest_tweet_time_to_keep = Time.now - @options[:days] * 24 * 60 * 60
-// @newest_tweet_time_to_keep = Time.now - @options[:olds] * 24 * 60 * 60
-
-// def too_new?(tweet)
-//   tweet.created_at > @oldest_tweet_time_to_keep || tweet.created_at < @newest_tweet_time_to_keep
-// end
-
-// def too_new_or_popular?(tweet)
-//   return true if too_new? tweet
-
-//   return false if tweet.retweeted?
-//   return false if tweet.text.start_with? "RT @"
-
-//   if tweet.retweet_count >= @options[:rts]
-//     puts "Ignoring tweet: too RTd: #{tweet.text}"
-//     return true
-//   end
-
-//   if tweet.favorite_count >= @options[:favs]
-//     puts "Ignoring tweet: too liked: #{tweet.text}"
-//     return true
-//   end
-
-//   false
-// end

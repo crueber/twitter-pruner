@@ -15,7 +15,8 @@
                 "--key=4HPrTujC8iy9sB4fJDmlKWRNT",
                 "--secret=puMh2hc8VirXubvXPuR1l66DBpNUbek0vH381HFVqiaTGVXd6y",
                 "--token=14835486-fownALkWIt8Z3HGOOAPJNLro9CyGaO9WMlfnUejTL",
-                "--tsecret=izCbY13NRknFlARvKsquH46vNGbUxE8gK3rjeUOqrUhuG"
+                "--tsecret=izCbY13NRknFlARvKsquH46vNGbUxE8gK3rjeUOqrUhuG",
+                "--max=600"
             ]
         }
     ]

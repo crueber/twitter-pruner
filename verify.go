@@ -15,6 +15,6 @@ func Verify(twit *twitter.Client, te *PrunerEnv) (*twitter.User, error) {
 	}
 
 	fmt.Printf("Verified :: %v :: %v :: %v\n", user.ScreenName, user.Name, user.Description)
-	fmt.Printf("Total number of statuses: %v\n", user.StatusesCount)
+	fmt.Printf("%v statuses :: %v favorites\n", user.StatusesCount, user.FavouritesCount)
 	return user, nil
 }

@@ -19,7 +19,7 @@ type PrunerEnv struct {
 	Days                int       `cli:"d,days" usage:"number of days to keep" dft:"28"`
 	Rts                 int       `cli:"rt" usage:"keep tweets with this many retweets" dft:"3"`
 	Favs                int       `cli:"fav" usage:"keep tweets with this many favorites" dft:"3"`
-	AllRts              bool      `cli:"r,allrts" usage:"removal all of your retweets" dft:"true"`
+	AllRts              bool      `cli:"r,allrts" usage:"removal all of your retweets" dft:"false"`
 	Commit              bool      `cli:"c" usage:"commit changes" dft:"false"`
 	MaxAPITweets        int       `cli:"max" usage:"max api tweets" dft:"3200"`
 	MaxTweetsPerRequest int       `cli:"request" usage:"number of tweets per request" dft:"100"`
