@@ -12,10 +12,10 @@ import (
 // PrunerEnv is used to hold all twitter envs.
 type PrunerEnv struct {
 	cli.Helper
-	ConsumerKey         string    `cli:"*key" usage:"consumer key"`
-	ConsumerSecret      string    `cli:"*secret" usage:"consumer secret"`
-	AccessToken         string    `cli:"*token" usage:"access token"`
-	AccessTokenSecret   string    `cli:"*tsecret" usage:"access token secret"`
+	ConsumerKey         string    `cli:"*key" usage:"consumer key" prompt:"Consumer Key"`
+	ConsumerSecret      string    `cli:"*secret" usage:"consumer secret" prompt:"Consumer Secret"`
+	AccessToken         string    `cli:"*token" usage:"access token" prompt:"Access Token"`
+	AccessTokenSecret   string    `cli:"*tsecret" usage:"access token secret" prompt:"Access Token Secret"`
 	Days                int       `cli:"d,days" usage:"number of days to keep" dft:"28"`
 	Rts                 int       `cli:"rt" usage:"keep tweets with this many retweets" dft:"3"`
 	Favs                int       `cli:"fav" usage:"keep tweets with this many favorites" dft:"3"`
