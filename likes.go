@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/crueber/twitter-pruner/pruner"
 	"github.com/dghubble/go-twitter/twitter"
 )
 
-func whichTweetsToUnfavorite(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
+func whichTweetsToUnfavorite(tweets []twitter.Tweet, env *pruner.Env) []int64 {
 	var unfav []int64
 
 	for _, tweet := range tweets {
@@ -22,35 +23,21 @@ func whichTweetsToUnfavorite(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
 	return unfav
 }
 
-func unfavorite(te *twitter.Client, id int64) error {
-	_, resp, err := te.Favorites.Destroy(&twitter.FavoriteDestroyParams{ID: id})
-	if resp.StatusCode == 429 {
-		wait, _ := time.ParseDuration(resp.Header.Get("x-rate-limit-reset") + "s")
-		fmt.Printf("Rate limit exceeded, waiting %v before trying again.", wait.String())
-		<-time.After(wait)
-		return unfavorite(te, id)
-	}
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func processUnfavorite(te *twitter.Client, env *PrunerEnv, tweetIds []int64) (int, int) {
+func processUnfavorite(c *pruner.Client, tweetIds []int64) (int, int) {
 	count := 0
 	errCount := 0
-	if env.Commit {
+	if c.Env.Commit {
 		for _, id := range tweetIds {
-			err := unfavorite(te, id)
+			err := c.DestroyLike(id)
 			if err != nil {
-				if env.Verbose {
+				if c.Env.Verbose {
 					fmt.Printf("\n")
 				}
 				fmt.Printf("%v\n", err)
 				errCount++
 				continue
 			}
-			if env.Verbose {
+			if c.Env.Verbose {
 				fmt.Printf(".")
 			}
 			count++
@@ -60,51 +47,51 @@ func processUnfavorite(te *twitter.Client, env *PrunerEnv, tweetIds []int64) (in
 }
 
 // PruneLikes does exactly what it says it does
-func PruneLikes(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
+func PruneLikes(c *pruner.Client, user *twitter.User) error {
+	var max int64
 	count := 0
 	markedForRemoval := 0
 	removed := 0
 	errorCount := 0
-	isFalse := false
-	opts := &twitter.FavoriteListParams{Count: env.MaxTweetsPerRequest, UserID: user.ID, IncludeEntities: &isFalse}
 	shouldContinue := true
 
 	for shouldContinue {
-		env.MaxAPICalls--
-		favs, _, err := te.Favorites.List(opts)
+		c.Env.MaxAPICalls--
+		favs, err := c.GetLikes(max)
 		if err != nil {
 			fmt.Printf("Error retrieving favorites: %+v", err)
 			errorCount++
+			continue
 		}
 
-		unfav := whichTweetsToUnfavorite(favs, env)
-		unfaved, errs := processUnfavorite(te, env, unfav)
-		if env.Commit && env.Verbose && unfaved > 0 {
+		unfav := whichTweetsToUnfavorite(favs, c.Env)
+		unfaved, errs := processUnfavorite(c, unfav)
+		if c.Env.Commit && c.Env.Verbose && unfaved > 0 {
 			fmt.Printf("\n")
 		}
 
-		env.MaxAPICalls -= unfaved
+		c.Env.MaxAPICalls -= unfaved
 		count += len(favs)
 		markedForRemoval += len(unfav)
 		removed += unfaved
 		errorCount += errs
 
-		if errorCount < 20 && len(favs) > 0 && env.MaxAPICalls > 0 {
-			opts.MaxID = favs[len(favs)-1].ID - 1
-			if env.Verbose {
-				fmt.Printf("%v errs -- %v likes -- %v calls left -- oldest in batch: %v\n", errorCount, len(favs), env.MaxAPICalls, favs[len(favs)-1].CreatedAt)
+		if errorCount < 20 && len(favs) > 0 && c.Env.MaxAPICalls > 0 {
+			max = favs[len(favs)-1].ID - 1
+			if c.Env.Verbose {
+				fmt.Printf("%v errs -- %v likes -- %v calls left -- oldest in batch: %v\n", errorCount, len(favs), c.Env.MaxAPICalls, favs[len(favs)-1].CreatedAt)
 			} else {
 				fmt.Printf(".")
 			}
 		} else {
-			if !env.Verbose {
+			if !c.Env.Verbose {
 				fmt.Printf(".\n")
 			}
 			shouldContinue = false
 		}
 	}
 
-	fmt.Printf("\nTotal Scanned Tweets: %v; Unliked: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
+	fmt.Printf("\nTotal Scanned Tweets: %v; Unliked: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, c.Env.MaxAge.Format(time.RFC3339))
 
 	return nil
 }

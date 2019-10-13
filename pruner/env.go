@@ -1,4 +1,4 @@
-package main
+package pruner
 
 import (
 	"strconv"
@@ -9,8 +9,8 @@ import (
 	"github.com/mkideal/cli"
 )
 
-// PrunerEnv is used to hold all twitter envs.
-type PrunerEnv struct {
+// Env is used to hold all twitter envs.
+type Env struct {
 	cli.Helper
 	ConsumerKey         string    `cli:"*key" usage:"consumer key" prompt:"Consumer Key"`
 	ConsumerSecret      string    `cli:"*secret" usage:"consumer secret" prompt:"Consumer Secret"`
@@ -29,8 +29,8 @@ type PrunerEnv struct {
 	Verbose             bool      `cli:"v,verbose" usage:"increased verbosity" dft:"false"`
 }
 
-// GenerateTwitterClient builds a twitter client that can be used to make calls
-func (te *PrunerEnv) GenerateTwitterClient() (*twitter.Client, error) {
+// GenerateClient builds a twitter client that can be used to make calls
+func (te *Env) GenerateClient() (*Client, error) {
 	if te.MaxAge.IsZero() {
 		age, err := time.ParseDuration("-" + strconv.Itoa(te.Days*24) + "h")
 		if err != nil {
@@ -42,5 +42,6 @@ func (te *PrunerEnv) GenerateTwitterClient() (*twitter.Client, error) {
 	config := oauth1.NewConfig(te.ConsumerKey, te.ConsumerSecret)
 	token := oauth1.NewToken(te.AccessToken, te.AccessTokenSecret)
 	httpClient := config.Client(oauth1.NoContext, token)
-	return twitter.NewClient(httpClient), nil
+
+	return &Client{twitter.NewClient(httpClient), te}, nil
 }

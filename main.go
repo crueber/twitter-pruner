@@ -8,23 +8,24 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/crueber/twitter-pruner/pruner"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/mkideal/cli"
 )
 
 // Pruner is for each of the pruning functions
-type Pruner func(*twitter.Client, *twitter.User, *PrunerEnv) error
+type Pruner func(*pruner.Client, *twitter.User) error
 
 func main() {
-	cli.Run(new(PrunerEnv), func(ctx *cli.Context) error {
-		twitterEnv := ctx.Argv().(*PrunerEnv)
-		client, err := twitterEnv.GenerateTwitterClient()
+	cli.Run(new(pruner.Env), func(ctx *cli.Context) error {
+		twitterEnv := ctx.Argv().(*pruner.Env)
+		client, err := twitterEnv.GenerateClient()
 		if err != nil {
 			fmt.Printf("%+v\n", err)
 			os.Exit(1)
 		}
 
-		user, err := Verify(client, twitterEnv)
+		user, err := Verify(client)
 		if err != nil {
 			fmt.Printf("%+v\n", err)
 			os.Exit(1)
@@ -45,8 +46,8 @@ func main() {
 			}
 			fmt.Printf("Started %v\n", strings.Replace(runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), "main.", "", 1))
 
-			f := fn.(func(*twitter.Client, *twitter.User, *PrunerEnv) error)
-			err := Pruner(f)(client, user, twitterEnv)
+			f := fn.(func(*pruner.Client, *twitter.User) error)
+			err := Pruner(f)(client, user)
 			if err != nil {
 				fmt.Printf("%+v\n", err)
 				os.Exit(1)

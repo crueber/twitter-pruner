@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 
+	"github.com/crueber/twitter-pruner/pruner"
 	"github.com/dghubble/go-twitter/twitter"
 )
 
 // Verify gets User baseline data.
-func Verify(twit *twitter.Client, te *PrunerEnv) (*twitter.User, error) {
-	verifyParams := &twitter.AccountVerifyParams{SkipStatus: twitter.Bool(true), IncludeEmail: twitter.Bool(true)}
-	user, _, err := twit.Accounts.VerifyCredentials(verifyParams)
+func Verify(c *pruner.Client) (*twitter.User, error) {
+	user, err := c.GetUserInfo()
 	if err != nil {
 		return nil, err
 	}

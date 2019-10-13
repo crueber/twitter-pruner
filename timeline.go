@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/crueber/twitter-pruner/pruner"
 	"github.com/dghubble/go-twitter/twitter"
 )
 
-func isAgedOut(t *twitter.Tweet, env *PrunerEnv) bool {
+func isAgedOut(t *twitter.Tweet, env *pruner.Env) bool {
 	createdTime, _ := t.CreatedAtTime()
 
 	return env.MaxAge.After(createdTime)
 }
 
-func isBoring(t *twitter.Tweet, env *PrunerEnv) bool {
+func isBoring(t *twitter.Tweet, env *pruner.Env) bool {
 	if env.AllRts && t.Retweeted {
 		return true
 	}
@@ -30,7 +31,7 @@ func isBoring(t *twitter.Tweet, env *PrunerEnv) bool {
 	return true
 }
 
-func getTweetsToDelete(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
+func calcTweetsToDelete(tweets []twitter.Tweet, env *pruner.Env) []int64 {
 	var tweetsToDelete []int64
 	for _, tweet := range tweets {
 		if isAgedOut(&tweet, env) && isBoring(&tweet, env) {
@@ -43,35 +44,21 @@ func getTweetsToDelete(tweets []twitter.Tweet, env *PrunerEnv) []int64 {
 	return tweetsToDelete
 }
 
-func deleteTweet(te *twitter.Client, id int64) error {
-	_, resp, err := te.Statuses.Destroy(id, &twitter.StatusDestroyParams{ID: id})
-	if resp.StatusCode == 429 {
-		wait, _ := time.ParseDuration(resp.Header.Get("x-rate-limit-reset") + "s")
-		fmt.Printf("\nRate limit exceeded, waiting %v before trying again.\n", wait.String())
-		<-time.After(wait)
-		return deleteTweet(te, id)
-	}
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func deleteTweets(te *twitter.Client, tweetIds []int64, env *PrunerEnv) (int, int) {
+func deleteTweets(c *pruner.Client, tweetIds []int64) (int, int) {
 	count := 0
 	errorCount := 0
-	if env.Commit {
+	if c.Env.Commit {
 		for _, id := range tweetIds {
-			err := deleteTweet(te, id)
+			err := c.DestroyTweet(id)
 			if err != nil {
-				if env.Verbose {
+				if c.Env.Verbose {
 					fmt.Printf("\n")
 				}
 				fmt.Printf("Error removing status: %v\n", err)
 				errorCount++
 				continue
 			}
-			if env.Verbose {
+			if c.Env.Verbose {
 				fmt.Printf(".")
 			}
 			count++
@@ -81,46 +68,45 @@ func deleteTweets(te *twitter.Client, tweetIds []int64, env *PrunerEnv) (int, in
 }
 
 // PruneTimeline does exactly what it says it does
-func PruneTimeline(te *twitter.Client, user *twitter.User, env *PrunerEnv) error {
+func PruneTimeline(c *pruner.Client, user *twitter.User) error {
+	var max int64
 	count := 0
 	markedForRemoval := 0
 	removed := 0
 	errorCount := 0
-	boolTrue := true
-	opts := &twitter.UserTimelineParams{Count: env.MaxTweetsPerRequest, TrimUser: &boolTrue, IncludeRetweets: &boolTrue}
 	shouldContinue := true
 
 	for shouldContinue {
-		env.MaxAPICalls--
-		tweets, _, err := te.Timelines.UserTimeline(opts)
+		c.Env.MaxAPICalls--
+		tweets, err := c.GetTimeline(max)
 		if err != nil {
 			fmt.Printf("Error in timeline retrieval: %+v", err)
 			errorCount++
 		}
 		count += len(tweets)
 
-		tweetsToDelete := getTweetsToDelete(tweets, env)
+		tweetsToDelete := calcTweetsToDelete(tweets, c.Env)
 		markedForRemoval += len(tweetsToDelete)
 
-		numberRemoved, errs := deleteTweets(te, tweetsToDelete, env)
-		if env.Commit && env.Verbose {
+		numberRemoved, errs := deleteTweets(c, tweetsToDelete)
+		if c.Env.Commit && c.Env.Verbose {
 			fmt.Printf("\n")
 		}
-		env.MaxAPICalls -= numberRemoved
+		c.Env.MaxAPICalls -= numberRemoved
 		removed += numberRemoved
 		errorCount += errs
 
-		if errorCount < 20 && len(tweets) > 0 && env.MaxAPICalls > 0 {
-			opts.MaxID = tweets[len(tweets)-1].ID - 1
-			if env.Verbose {
-				fmt.Printf("%v errs -- %v tweets -- %v calls left -- %v current id\n", errorCount, len(tweets), env.MaxAPICalls, opts.MaxID)
+		if errorCount < 20 && len(tweets) > 0 && c.Env.MaxAPICalls > 0 {
+			max = tweets[len(tweets)-1].ID - 1
+			if c.Env.Verbose {
+				fmt.Printf("%v errs -- %v tweets -- %v calls left -- %v current id\n", errorCount, len(tweets), c.Env.MaxAPICalls, max)
 			}
 		} else {
 			shouldContinue = false
 		}
 	}
 
-	fmt.Printf("\nTotal Scanned Tweets: %v; Removed: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, env.MaxAge.Format(time.RFC3339))
+	fmt.Printf("\nTotal Scanned Tweets: %v; Removed: %v of %v; Max Age: %v\n", count, removed, markedForRemoval, c.Env.MaxAge.Format(time.RFC3339))
 
 	return nil
 }
